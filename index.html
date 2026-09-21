@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spardino – Budget &amp; Ziele</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #EAF2EC;
+    --surface: #FFFFFF;
+    --ink: #1F2A24;
+    --muted: #708079;
+    --accent: #2F8F6B;
+    --accent-dark: #226b50;
+    --accent-2: #E8B34C;
+    --pink: #FF7FA8;
+    --pink-bg: #FFE3ED;
+    --violet: #9B6BF2;
+    --violet-bg: #ECE0FF;
+    --red: #FF5C5C;
+    --red-bg: #FFDCDC;
+    --dino-empty: #DCE3DE;
+    --state-color: var(--accent);
+    --state-bg: var(--bg);
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    font-family:'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+  }
+  h1,h2,h3{ font-family:'Baloo 2', cursive; margin:0; }
+
+  #app{
+    width:100%;
+    max-width:480px;
+    min-height:100vh;
+    background: var(--bg);
+    display:flex;
+    flex-direction:column;
+    position:relative;
+  }
+
+  header.topbar{
+    padding: 1.4rem 1.25rem 1rem;
+    display:flex;
+    align-items:baseline;
+    gap:.5rem;
+  }
+  header.topbar h1{
+    font-size:1.5rem;
+    color: var(--accent-dark);
+  }
+  header.topbar .sub{
+    font-size:.85rem;
+    color:var(--muted);
+    font-weight:600;
+  }
+
+  main{
+    flex:1;
+    padding: 0 1.1rem 6.5rem;
+    overflow-y:auto;
+  }
+
+  /* ---- Bottom nav ---- */
+  nav.bottom-nav{
+    position:fixed;
+    bottom:0;
+    left:50%;
+    transform:translateX(-50%);
+    width:100%;
+    max-width:480px;
+    background: var(--surface);
+    border-top:2.5px solid var(--ink);
+    display:flex;
+    padding: .5rem .75rem calc(.5rem + env(safe-area-inset-bottom,0px));
+    gap:.5rem;
+    z-index:20;
+  }
+  nav.bottom-nav button{
+    flex:1;
+    border:none;
+    background:transparent;
+    padding:.55rem .4rem;
+    border-radius:16px;
+    font-family:'Baloo 2', cursive;
+    font-size:.95rem;
+    font-weight:600;
+    color:var(--muted);
+    cursor:pointer;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:.15rem;
+    transition: background .15s, color .15s, transform .1s;
+  }
+  nav.bottom-nav button .ico{ font-size:1.35rem; }
+  nav.bottom-nav button.active{
+    background: var(--accent);
+    color:#fff;
+  }
+  nav.bottom-nav button:active{ transform:scale(.96); }
+
+  /* ---- Buttons ---- */
+  .btn{
+    font-family:'Baloo 2', cursive;
+    font-weight:600;
+    font-size:1rem;
+    border:2.5px solid var(--ink);
+    border-radius:14px;
+    padding:.6rem 1.1rem;
+    background: var(--accent-2);
+    color:var(--ink);
+    cursor:pointer;
+    transition: transform .1s;
+  }
+  .btn:active{ transform:scale(.96); }
+  .btn.primary{ background:var(--accent); color:#fff; }
+  .btn.danger{ background:var(--red-bg); border-color:var(--red); color:#8a1f1f; }
+  .btn.ghost{ background:transparent; box-shadow:none; border:2px solid var(--ink); }
+  .btn.small{ padding:.35rem .7rem; font-size:.85rem; border-radius:10px; }
+  .btn.full{ width:100%; }
+  .fab{
+    position:fixed;
+    bottom: calc(5.4rem + env(safe-area-inset-bottom,0px));
+    left:50%;
+    transform:translateX(calc(-50% + 170px));
+    width:54px; height:54px;
+    border-radius:50%;
+    border:2.5px solid var(--ink);
+    background:var(--accent);
+    color:#fff;
+    font-size:1.6rem;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    z-index:15;
+  }
+
+  /* ---- Cards ---- */
+  .card{
+    background: var(--surface);
+    border:2.5px solid var(--ink);
+    border-radius: 24px 10px 24px 10px;
+    padding:1.1rem 1.2rem;
+    margin-bottom:1rem;
+    cursor:pointer;
+  }
+  .card:nth-child(even){ border-radius:10px 24px 10px 24px; }
+  .card h3{ font-size:1.15rem; margin-bottom:.4rem; }
+  .card .meta{ font-size:.82rem; color:var(--muted); font-weight:700; margin-bottom:.6rem;}
+
+  .empty-state{
+    text-align:center;
+    padding: 3rem 1rem;
+    color: var(--muted);
+  }
+  .empty-state .big{ font-size:3rem; display:block; margin-bottom:.5rem;}
+
+  /* ---- Progress bar (Planer) ---- */
+  .progress-track{
+    height:20px;
+    background: var(--dino-empty);
+    border:2px solid var(--ink);
+    border-radius:12px;
+    overflow:hidden;
+    position:relative;
+  }
+  .progress-fill{
+    height:100%;
+    background: var(--state-color);
+    transition: width .4s ease;
+  }
+  .progress-numbers{
+    display:flex;
+    justify-content:space-between;
+    font-size:.8rem;
+    font-weight:700;
+    margin-top:.35rem;
+    color:var(--muted);
+  }
+
+  /* ---- Week detail ---- */
+  .week-hero{
+    background: var(--state-bg);
+    border:2.5px solid var(--ink);
+    border-radius:24px;
+    padding:1.4rem;
+    margin-bottom:1.2rem;
+    text-align:center;
+  }
+  .week-hero .amount{
+    font-family:'Baloo 2', cursive;
+    font-size:2.1rem;
+    color:var(--state-color);
+    filter:brightness(.75);
+  }
+  .week-hero .of{ font-size:.9rem; color:var(--muted); font-weight:700; margin-top:.1rem;}
+  .week-hero .percent-tag{
+    display:inline-block;
+    margin-top:.6rem;
+    background:var(--surface);
+    border:2px solid var(--ink);
+    padding:.2rem .7rem;
+    border-radius:999px;
+    font-weight:800;
+    font-size:.85rem;
+  }
+
+  .expense-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:var(--surface);
+    border:2px solid var(--ink);
+    border-radius:14px;
+    padding:.6rem .9rem;
+    margin-bottom:.55rem;
+  }
+  .expense-row .desc{ font-weight:700; }
+  .expense-row .date{ font-size:.75rem; color:var(--muted); font-weight:600;}
+  .expense-row .amt{ font-family:'Baloo 2',cursive; font-size:1.05rem;}
+  .expense-row button.del{
+    background:none; border:none; color:var(--muted); font-size:1rem; cursor:pointer; margin-left:.5rem;
+  }
+
+  .section-title{
+    font-size:1.05rem;
+    margin: 1rem 0 .6rem;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+
+  /* ---- Dino image stack (Bild statt Formen) ---- */
+  .dino-wrap{ position:relative; width:100%; aspect-ratio: 450 / 560; }
+  .dino-stack{ position:relative; width:100%; height:100%; }
+  .dino-img{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block; }
+  .dino-outline{ opacity:.9; }
+  .dino-color-clip{ position:absolute; inset:0; overflow:hidden; transition: clip-path .35s ease; }
+  .dino-color.sad{ filter: hue-rotate(240deg) saturate(1.4) brightness(.95); }
+  .dino-tears{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+
+  /* ---- Crying dino banner ---- */
+  .cry-banner{
+    display:flex;
+    align-items:center;
+    gap:.8rem;
+    background: var(--red-bg);
+    border:2.5px solid var(--red);
+    border-radius:20px;
+    padding:.7rem .9rem;
+    margin-bottom:1rem;
+  }
+  .cry-banner .dino-wrap{ width:60px; flex-shrink:0; }
+  .cry-banner .txt{ font-weight:800; color:#8a1f1f; font-size:.95rem; }
+  .cry-banner .txt small{ display:block; font-weight:600; color:#a34141; font-size:.78rem; margin-top:.15rem;}
+
+  /* ---- Goal card dino ---- */
+  .goal-card{ display:flex; align-items:center; gap:.9rem; }
+  .goal-card .dino-wrap{ width:70px; flex-shrink:0; }
+  .goal-card .info{ flex:1; }
+  .goal-card .bar-mini{
+    height:10px; background:var(--dino-empty); border-radius:6px; overflow:hidden; margin-top:.4rem;
+    border:1.5px solid var(--ink);
+  }
+  .goal-card .bar-mini .fill{ height:100%; background:var(--accent-2); }
+
+  .goal-hero{ text-align:center; margin-bottom:1.2rem; }
+  .goal-hero .dino-wrap{ width:200px; margin:0 auto; }
+  .goal-hero .nums{ font-family:'Baloo 2',cursive; font-size:1.7rem; margin-top:.3rem; }
+  .goal-hero .nums small{ font-family:'Nunito'; font-size:.9rem; color:var(--muted); font-weight:700; }
+
+  .contrib-row{
+    display:flex; justify-content:space-between; align-items:center;
+    background:var(--surface); border:2px solid var(--ink); border-radius:14px;
+    padding:.6rem .9rem; margin-bottom:.55rem;
+  }
+
+  /* ---- Modal ---- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(31,42,36,.55);
+    display:flex; align-items:center; justify-content:center;
+    z-index:50; padding:1.2rem;
+  }
+  .modal-box{
+    background:var(--surface);
+    border:2.5px solid var(--ink);
+    border-radius:22px;
+    padding:1.4rem;
+    width:100%;
+    max-width:360px;
+  }
+  .modal-box h2{ font-size:1.25rem; margin-bottom:1rem; }
+  .field{ margin-bottom:1rem; }
+  .field label{ display:block; font-weight:700; font-size:.85rem; margin-bottom:.3rem; color:var(--muted); }
+  .field input{
+    width:100%;
+    font-family:'Nunito', sans-serif;
+    font-size:1rem;
+    padding:.6rem .7rem;
+    border:2px solid var(--ink);
+    border-radius:12px;
+    background:#fbfbf9;
+  }
+  .field input:focus{ outline:2px solid var(--accent); }
+  .modal-actions{ display:flex; gap:.6rem; margin-top:.4rem; }
+  .modal-actions .btn{ flex:1; }
+  .back-link{
+    display:inline-flex; align-items:center; gap:.3rem;
+    font-weight:800; color:var(--accent-dark); cursor:pointer;
+    margin-bottom:.8rem; font-size:.95rem;
+  }
+
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#182420; --surface:#22302B; --ink:#EFEFEA; --muted:#9BAAA2; --dino-empty:#39473F;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <h1>🦕 Spardino</h1>
+    <span class="sub" id="header-sub">Planer</span>
+  </header>
+  <main id="view"></main>
+  <button class="fab" id="fab" aria-label="Neu erstellen">+</button>
+  <nav class="bottom-nav">
+    <button data-view="planer" class="active"><span class="ico">📅</span>Planer</button>
+    <button data-view="ziele"><span class="ico">🦖</span>Ziele</button>
+  </nav>
+</div>
+<div id="modal-root"></div>
+
+<script>
+/* ---------------------------------------------------------
+   DATA
+--------------------------------------------------------- */
+const STORAGE_KEY = 'spardino_app_v1';
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){ console.warn('Konnte Daten nicht laden', e); }
+  return { weeks: [], goals: [] };
+}
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+  catch(e){ console.warn('Konnte Daten nicht speichern', e); }
+}
+
+let data = loadState();
+let ui = { view:'planer', weekId:null, goalId:null };
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+/* ---------------------------------------------------------
+   HELPERS
+--------------------------------------------------------- */
+function getISOWeek(date){
+  const d = new Date(date.getTime());
+  const dayNr = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - dayNr + 3);
+  const firstThursday = d.getTime();
+  d.setMonth(0,1);
+  if(d.getDay() !== 4){ d.setMonth(0, 1 + ((4 - d.getDay()) + 7) % 7); }
+  const week = 1 + Math.round((firstThursday - d.getTime()) / (7*24*3600*1000));
+  return week;
+}
+function defaultWeekName(){
+  const now = new Date();
+  return `KW ${getISOWeek(now)} ${now.getFullYear()}`;
+}
+function fmtMoney(n){
+  return n.toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
+}
+function fmtDate(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit'});
+}
+function weekSpent(week){ return week.expenses.reduce((s,e)=>s+e.amount,0); }
+function weekPercent(week){ return week.budget>0 ? (weekSpent(week)/week.budget*100) : 0; }
+function themeFor(percent){
+  if(percent < 50) return {name:'pink', color:'var(--pink)', bg:'var(--pink-bg)'};
+  if(percent < 75) return {name:'violet', color:'var(--violet)', bg:'var(--violet-bg)'};
+  return {name:'red', color:'var(--red)', bg:'var(--red-bg)'};
+}
+
+/* ---------------------------------------------------------
+   DINO-BILD (Umriss + Farbversion, wird von unten nach oben ausgemalt)
+--------------------------------------------------------- */
+// Zwei eigene Grafiken liegen im Ordner "images/":
+//   dino-outline.png -> der "leere" (graue) Zustand
+//   dino-color.png    -> der fertig ausgemalte Zustand
+// Per clip-path wird die Farbversion nur bis zur Fortschritts-Höhe angezeigt,
+// sodass der Dino wie ein Fülllevel von unten nach oben "ausgemalt" wird.
+function dinoImage(percent, opts={}){
+  const p = Math.max(0, Math.min(100, percent));
+  const hiddenFromTop = (100 - p).toFixed(1); // Prozent, die oben verdeckt bleiben
+  const sadClass = opts.sad ? ' sad' : '';
+  return `
+  <div class="dino-stack">
+    <img class="dino-img dino-outline" src="dino-outline.png" alt="">
+    <div class="dino-color-clip" style="clip-path: inset(${hiddenFromTop}% 0 0 0);">
+      <img class="dino-img dino-color${sadClass}" src="dino-color.png" alt="">
+    </div>
+    ${opts.sad ? `
+    <svg class="dino-tears" viewBox="0 0 450 560" xmlns="http://www.w3.org/2000/svg">
+      <path d="M296 78 C296 92 284 100 284 112 C284 121 290 128 298 128 C306 128 312 121 312 112 C312 100 296 92 296 78 Z" fill="#5AB4E0"/>
+      <path d="M326 96 C326 107 317 114 317 124 C317 132 322 137 328 137 C334 137 339 132 339 124 C339 114 326 107 326 96 Z" fill="#5AB4E0" opacity=".85"/>
+    </svg>` : ''}
+  </div>`;
+}
+
+/* ---------------------------------------------------------
+   RENDER
+--------------------------------------------------------- */
+const viewEl = document.getElementById('view');
+const headerSub = document.getElementById('header-sub');
+
+function render(){
+  document.querySelectorAll('.bottom-nav button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.view === ui.view);
+  });
+  document.getElementById('fab').style.display =
+    (ui.view==='planer' && !ui.weekId) || (ui.view==='ziele' && !ui.goalId) ? 'flex' : 'none';
+
+  if(ui.view==='planer'){
+    headerSub.textContent = ui.weekId ? 'Woche' : 'Planer';
+    ui.weekId ? renderWeekDetail() : renderPlanerList();
+  }else{
+    headerSub.textContent = ui.goalId ? 'Sparziel' : 'Ziele';
+    ui.goalId ? renderGoalDetail() : renderZieleList();
+  }
+}
+
+function renderPlanerList(){
+  document.documentElement.style.setProperty('--state-color','var(--accent)');
+  if(data.weeks.length===0){
+    viewEl.innerHTML = `<div class="empty-state"><span class="big">📅</span>
+      Noch keine Woche angelegt.<br>Tippe auf <b>+</b>, um deine erste Woche zu starten.</div>`;
+    return;
+  }
+  const sorted = [...data.weeks].sort((a,b)=> b.createdAt - a.createdAt);
+  viewEl.innerHTML = sorted.map(w=>{
+    const spent = weekSpent(w);
+    const pct = weekPercent(w);
+    const theme = themeFor(pct);
+    return `
+    <div class="card" data-week="${w.id}" style="--state-color:${theme.color}">
+      <h3>${escapeHTML(w.name)}</h3>
+      <div class="meta">${fmtMoney(spent)} von ${fmtMoney(w.budget)} ausgegeben</div>
+      <div class="progress-track"><div class="progress-fill" style="width:${Math.min(pct,100)}%; background:${theme.color}"></div></div>
+      <div class="progress-numbers"><span>${pct.toFixed(0)}%</span><span>${w.expenses.length} Ausgabe(n)</span></div>
+    </div>`;
+  }).join('');
+  viewEl.querySelectorAll('[data-week]').forEach(el=>{
+    el.addEventListener('click', ()=>{ ui.weekId = el.dataset.week; render(); });
+  });
+}
+
+function renderWeekDetail(){
+  const week = data.weeks.find(w=>w.id===ui.weekId);
+  if(!week){ ui.weekId=null; return render(); }
+  const spent = weekSpent(week);
+  const pct = weekPercent(week);
+  const theme = themeFor(pct);
+  document.documentElement.style.setProperty('--state-color', theme.color);
+  document.documentElement.style.setProperty('--state-bg', theme.bg);
+
+  const overBudget = pct > 100;
+  const expensesSorted = [...week.expenses].sort((a,b)=> new Date(b.date) - new Date(a.date));
+
+  viewEl.innerHTML = `
+    <div class="back-link" id="back-to-weeks">← Alle Wochen</div>
+    <div class="week-hero" style="--state-bg:${theme.bg}">
+      <div class="amount" style="color:${theme.color}">${fmtMoney(spent)}</div>
+      <div class="of">von ${fmtMoney(week.budget)} Budget</div>
+      <div class="percent-tag">${pct.toFixed(0)}% ausgegeben</div>
+      <div class="progress-track" style="margin-top:.9rem;">
+        <div class="progress-fill" style="width:${Math.min(pct,100)}%; background:${theme.color}"></div>
+      </div>
+    </div>
+
+    ${overBudget ? `
+    <div class="cry-banner">
+      <div class="dino-wrap">${dinoImage(100, {sad:true})}</div>
+      <div class="txt">Oje, Budget gesprengt!<small>Der Dino weint – ${(pct-100).toFixed(0)}% über dem Budget.</small></div>
+    </div>` : ''}
+
+    <div class="section-title"><span>Ausgaben</span>
+      <button class="btn small" id="add-expense-btn">+ Eintragen</button>
+    </div>
+    <div id="expense-list">
+      ${expensesSorted.length===0
+        ? `<div class="empty-state" style="padding:1.5rem 1rem;">Noch keine Ausgaben eingetragen.</div>`
+        : expensesSorted.map(e=>`
+          <div class="expense-row" data-exp="${e.id}">
+            <div>
+              <div class="desc">${escapeHTML(e.desc || 'Ausgabe')}</div>
+              <div class="date">${fmtDate(e.date)}</div>
+            </div>
+            <div style="display:flex; align-items:center;">
+              <span class="amt">${fmtMoney(e.amount)}</span>
+              <button class="del" data-del-exp="${e.id}" title="Löschen">✕</button>
+            </div>
+          </div>`).join('')}
+    </div>
+    <button class="btn danger full" id="delete-week-btn" style="margin-top:1.2rem;">Woche löschen</button>
+  `;
+
+  document.getElementById('back-to-weeks').onclick = ()=>{ ui.weekId=null; render(); };
+  document.getElementById('add-expense-btn').onclick = ()=> openExpenseModal(week.id);
+  document.getElementById('delete-week-btn').onclick = ()=>{
+    if(confirm(`Woche "${week.name}" wirklich löschen?`)){
+      data.weeks = data.weeks.filter(w=>w.id!==week.id);
+      saveState(); ui.weekId=null; render();
+    }
+  };
+  viewEl.querySelectorAll('[data-del-exp]').forEach(btn=>{
+    btn.onclick = (ev)=>{
+      ev.stopPropagation();
+      week.expenses = week.expenses.filter(e=>e.id!==btn.dataset.delExp);
+      saveState(); render();
+    };
+  });
+}
+
+function renderZieleList(){
+  if(data.goals.length===0){
+    viewEl.innerHTML = `<div class="empty-state"><span class="big">🦖</span>
+      Noch keine Sparziele.<br>Tippe auf <b>+</b>, um deinen ersten Spardino zu erschaffen.</div>`;
+    return;
+  }
+  const sorted = [...data.goals].sort((a,b)=> b.createdAt - a.createdAt);
+  viewEl.innerHTML = sorted.map(g=>{
+    const pct = g.target>0 ? Math.min(100, g.saved/g.target*100) : 0;
+    return `
+    <div class="card goal-card" data-goal="${g.id}">
+      <div class="dino-wrap">${dinoImage(pct)}</div>
+      <div class="info">
+        <h3>${escapeHTML(g.name)}</h3>
+        <div class="meta">${fmtMoney(g.saved)} von ${fmtMoney(g.target)}</div>
+        <div class="bar-mini"><div class="fill" style="width:${pct}%"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+  viewEl.querySelectorAll('[data-goal]').forEach(el=>{
+    el.addEventListener('click', ()=>{ ui.goalId = el.dataset.goal; render(); });
+  });
+}
+
+function renderGoalDetail(){
+  const goal = data.goals.find(g=>g.id===ui.goalId);
+  if(!goal){ ui.goalId=null; return render(); }
+  const pct = goal.target>0 ? Math.min(100, goal.saved/goal.target*100) : 0;
+  const remaining = Math.max(0, goal.target - goal.saved);
+  const contribSorted = [...goal.contributions].sort((a,b)=> new Date(b.date)-new Date(a.date));
+
+  viewEl.innerHTML = `
+    <div class="back-link" id="back-to-goals">← Alle Ziele</div>
+    <div class="goal-hero">
+      <div class="dino-wrap">${dinoImage(pct)}</div>
+      <h3>${escapeHTML(goal.name)}</h3>
+      <div class="nums">${fmtMoney(goal.saved)} <small>/ ${fmtMoney(goal.target)}</small></div>
+      <div class="meta" style="margin-top:.2rem;">${pct.toFixed(0)}% geschafft · noch ${fmtMoney(remaining)} übrig</div>
+      <button class="btn primary" id="add-contrib-btn" style="margin-top:1rem;">+ Beitrag eintragen</button>
+    </div>
+
+    <div class="section-title"><span>Beiträge</span></div>
+    <div id="contrib-list">
+      ${contribSorted.length===0
+        ? `<div class="empty-state" style="padding:1.5rem 1rem;">Noch keine Beiträge eingetragen.</div>`
+        : contribSorted.map(c=>`
+          <div class="contrib-row" data-contrib="${c.id}">
+            <div>
+              <div class="desc">${fmtDate(c.date)}</div>
+            </div>
+            <div style="display:flex; align-items:center;">
+              <span class="amt">+ ${fmtMoney(c.amount)}</span>
+              <button class="del" data-del-contrib="${c.id}" title="Löschen">✕</button>
+            </div>
+          </div>`).join('')}
+    </div>
+    <button class="btn danger full" id="delete-goal-btn" style="margin-top:1.2rem;">Sparziel löschen</button>
+  `;
+
+  document.getElementById('back-to-goals').onclick = ()=>{ ui.goalId=null; render(); };
+  document.getElementById('add-contrib-btn').onclick = ()=> openContribModal(goal.id);
+  document.getElementById('delete-goal-btn').onclick = ()=>{
+    if(confirm(`Sparziel "${goal.name}" wirklich löschen?`)){
+      data.goals = data.goals.filter(g=>g.id!==goal.id);
+      saveState(); ui.goalId=null; render();
+    }
+  };
+  viewEl.querySelectorAll('[data-del-contrib]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const c = goal.contributions.find(c=>c.id===btn.dataset.delContrib);
+      if(c){ goal.saved = Math.max(0, goal.saved - c.amount); }
+      goal.contributions = goal.contributions.filter(c=>c.id!==btn.dataset.delContrib);
+      saveState(); render();
+    };
+  });
+}
+
+function escapeHTML(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/* ---------------------------------------------------------
+   MODALS
+--------------------------------------------------------- */
+const modalRoot = document.getElementById('modal-root');
+
+function openModal({title, fields, submitLabel, onSubmit}){
+  modalRoot.innerHTML = `
+    <div class="modal-overlay">
+      <div class="modal-box">
+        <h2>${title}</h2>
+        <form id="modal-form">
+          ${fields.map(f=>`
+            <div class="field">
+              <label for="f-${f.name}">${f.label}</label>
+              <input id="f-${f.name}" name="${f.name}" type="${f.type}"
+                     value="${f.value !== undefined ? escapeHTML(String(f.value)) : ''}"
+                     ${f.step ? `step="${f.step}"` : ''} ${f.min!==undefined ? `min="${f.min}"`:''}
+                     placeholder="${f.placeholder||''}" required>
+            </div>`).join('')}
+          <div class="modal-actions">
+            <button type="button" class="btn ghost" id="modal-cancel">Abbrechen</button>
+            <button type="submit" class="btn primary">${submitLabel}</button>
+          </div>
+        </form>
+      </div>
+    </div>`;
+  const overlay = modalRoot.querySelector('.modal-overlay');
+  const form = document.getElementById('modal-form');
+  document.getElementById('modal-cancel').onclick = closeModal;
+  overlay.addEventListener('click', (e)=>{ if(e.target===overlay) closeModal(); });
+  form.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const values = {};
+    fields.forEach(f=>{ values[f.name] = form.elements[f.name].value; });
+    onSubmit(values);
+    closeModal();
+  });
+  setTimeout(()=>{ const first = form.querySelector('input'); if(first) first.focus(); }, 30);
+}
+function closeModal(){ modalRoot.innerHTML=''; }
+
+function openNewWeekModal(){
+  openModal({
+    title: '🆕 Neue Woche',
+    submitLabel: 'Erstellen',
+    fields: [
+      { name:'name', label:'Name der Woche', type:'text', value: defaultWeekName() },
+      { name:'budget', label:'Budget (€)', type:'number', step:'0.01', min:'0', placeholder:'z.B. 150' }
+    ],
+    onSubmit: ({name, budget})=>{
+      const week = { id:uid(), name: name.trim() || defaultWeekName(), budget: parseFloat(budget)||0, expenses:[], createdAt: Date.now() };
+      data.weeks.push(week);
+      saveState();
+      ui.weekId = week.id;
+      render();
+    }
+  });
+}
+
+function openExpenseModal(weekId){
+  openModal({
+    title: '💸 Ausgabe eintragen',
+    submitLabel: 'Speichern',
+    fields: [
+      { name:'desc', label:'Beschreibung', type:'text', placeholder:'z.B. Einkaufen' },
+      { name:'amount', label:'Betrag (€)', type:'number', step:'0.01', min:'0', placeholder:'z.B. 12.50' }
+    ],
+    onSubmit: ({desc, amount})=>{
+      const week = data.weeks.find(w=>w.id===weekId);
+      week.expenses.push({ id:uid(), desc: desc.trim(), amount: parseFloat(amount)||0, date: new Date().toISOString() });
+      saveState();
+      render();
+    }
+  });
+}
+
+function openNewGoalModal(){
+  openModal({
+    title: '🦖 Neuer Spardino',
+    submitLabel: 'Erstellen',
+    fields: [
+      { name:'name', label:'Name des Dinos', type:'text', placeholder:'z.B. Rex' },
+      { name:'target', label:'Sparziel (€)', type:'number', step:'0.01', min:'0', placeholder:'z.B. 500' }
+    ],
+    onSubmit: ({name, target})=>{
+      const goal = { id:uid(), name: name.trim() || 'Mein Spardino', target: parseFloat(target)||0, saved:0, contributions:[], createdAt: Date.now() };
+      data.goals.push(goal);
+      saveState();
+      ui.goalId = goal.id;
+      render();
+    }
+  });
+}
+
+function openContribModal(goalId){
+  openModal({
+    title: '💰 Beitrag eintragen',
+    submitLabel: 'Hinzufügen',
+    fields: [
+      { name:'amount', label:'Betrag (€)', type:'number', step:'0.01', min:'0', placeholder:'z.B. 20' }
+    ],
+    onSubmit: ({amount})=>{
+      const goal = data.goals.find(g=>g.id===goalId);
+      const val = parseFloat(amount)||0;
+      goal.saved += val;
+      goal.contributions.push({ id:uid(), amount: val, date: new Date().toISOString() });
+      saveState();
+      render();
+    }
+  });
+}
+
+/* ---------------------------------------------------------
+   EVENTS
+--------------------------------------------------------- */
+document.querySelectorAll('.bottom-nav button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    ui.view = btn.dataset.view;
+    ui.weekId = null;
+    ui.goalId = null;
+    render();
+  });
+});
+document.getElementById('fab').addEventListener('click', ()=>{
+  if(ui.view==='planer') openNewWeekModal();
+  else openNewGoalModal();
+});
+
+render();
+</script>
+</body>
+</html>
